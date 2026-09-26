@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
 import '../cart/cart.dart';
+import '../verticals/life.dart';
 import 'catalog_api.dart';
 
 String _money(num value) => value.toDouble().toStringAsFixed(2);
@@ -158,7 +159,30 @@ class StoreScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final api = ref.watch(catalogApiProvider);
     return Scaffold(
-      appBar: AppBar(title: const Text('Store')),
+      appBar: AppBar(
+        title: const Text('Store'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.favorite_outline),
+            onPressed: () async {
+              try {
+                await ref.read(lifeApiProvider).favoriteToggle(type: 'store', id: storeId);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Favorite updated.')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(apiMessage(e))),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
       body: FutureBuilder<List<dynamic>>(
         future: Future.wait([api.store(storeId), api.products(storeId: storeId)]),
         builder: (context, snapshot) {
@@ -202,7 +226,33 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Product')),
+      appBar: AppBar(
+        title: const Text('Product'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.favorite_outline),
+            onPressed: () async {
+              try {
+                await ref.read(lifeApiProvider).favoriteToggle(
+                      type: 'product',
+                      id: widget.productId,
+                    );
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Favorite updated.')),
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(apiMessage(e))),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: ref.watch(catalogApiProvider).product(widget.productId),
         builder: (context, snapshot) {

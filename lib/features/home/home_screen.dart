@@ -93,6 +93,11 @@ class HomeScreen extends ConsumerWidget {
                 onPressed: () => context.push('/stores'),
                 child: const Text('Browse stores'),
               ),
+              const SizedBox(height: 8),
+              FilledButton.tonal(
+                onPressed: () => context.push('/services'),
+                child: const Text('Services: parcel · rental · rides · more'),
+              ),
               const SizedBox(height: 16),
               Text('Banners', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),

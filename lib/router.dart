@@ -17,6 +17,10 @@ import 'features/cart/cart_screens.dart';
 import 'features/catalog/browse_screens.dart';
 import 'features/home/home_screen.dart';
 import 'features/orders/orders.dart';
+import 'features/support/support.dart';
+import 'features/verticals/life.dart';
+import 'features/verticals/rental_ride.dart';
+import 'features/verticals/transport.dart';
 import 'features/wallet/wallet.dart';
 
 /// Fetches GET /app-config and decides the launch gate. Refreshable so the
@@ -119,6 +123,68 @@ final routerProvider = Provider<GoRouter>((ref) {
           orderId: int.parse(state.pathParameters['id']!),
         ),
       ),
+      GoRoute(path: '/services', builder: (context, state) => const ServicesHubScreen()),
+      GoRoute(path: '/parcel', builder: (context, state) => const ParcelScreen()),
+      GoRoute(path: '/parcel/orders', builder: (context, state) => const ParcelOrdersScreen()),
+      GoRoute(
+        path: '/parcel/order/:id',
+        builder: (context, state) => ParcelTrackScreen(
+          orderId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(path: '/rental', builder: (context, state) => const RentalScreen()),
+      GoRoute(path: '/rental/orders', builder: (context, state) => const RentalOrdersScreen()),
+      GoRoute(
+        path: '/rental/order/:id',
+        builder: (context, state) => RentalTrackScreen(
+          orderId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(path: '/ride', builder: (context, state) => const RideScreen()),
+      GoRoute(path: '/rides', builder: (context, state) => const RidesScreen()),
+      GoRoute(
+        path: '/ride/:id',
+        builder: (context, state) => RideTrackScreen(
+          rideId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(path: '/life/services', builder: (context, state) => const LifeServicesScreen()),
+      GoRoute(
+        path: '/life/services/:cid',
+        builder: (context, state) => LifeServiceListScreen(
+          categoryId: int.parse(state.pathParameters['cid']!),
+        ),
+      ),
+      GoRoute(
+        path: '/life/service/:id',
+        builder: (context, state) => LifeServiceBookScreen(
+          serviceId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(path: '/life/bookings', builder: (context, state) => const LifeBookingsScreen()),
+      GoRoute(
+        path: '/life/booking/:id',
+        builder: (context, state) => LifeBookingTrackScreen(
+          bookingId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(path: '/life/dinein', builder: (context, state) => const DineinScreen()),
+      GoRoute(path: '/life/gifts', builder: (context, state) => const GiftsScreen()),
+      GoRoute(path: '/life/favorites', builder: (context, state) => const FavoritesScreen()),
+      GoRoute(path: '/life/chat', builder: (context, state) => const ChatThreadsScreen()),
+      GoRoute(
+        path: '/life/chat/new',
+        builder: (context, state) => const ChatThreadScreen(),
+      ),
+      GoRoute(
+        path: '/life/chat/:id',
+        builder: (context, state) => ChatThreadScreen(
+          threadId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(path: '/life/safety', builder: (context, state) => const SafetyScreen()),
+      GoRoute(path: '/life/safety/sos', builder: (context, state) => const SosRaiseScreen()),
+      GoRoute(path: '/life/complaints', builder: (context, state) => const ComplaintsScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
       GoRoute(
