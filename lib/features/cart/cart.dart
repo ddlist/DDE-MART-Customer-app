@@ -3,8 +3,11 @@
 // Cart lives client-side (product + addon selection); every total shown at
 // checkout comes from POST /cart/quote — the server is the source of truth.
 
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/api_client.dart';
 
@@ -36,7 +39,43 @@ class CartState {
 }
 
 class CartStore extends StateNotifier<CartState> {
-  CartStore() : super(const CartState());
+  CartStore() : super(const CartState()) {
+    _restore();
+  }
+
+  static const _key = 'cart.v1';
+
+  Future<void> _restore() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_key);
+      if (raw == null || raw.isEmpty) return;
+
+      final decoded = (jsonDecode(raw) as List);
+      final lines = decoded
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .map((m) => CartLine(
+                productId: (m['product_id'] as num).toInt(),
+                quantity: ((m['quantity'] as num?) ?? 1).toInt(),
+                addonIds: ((m['addons'] as List?) ?? [])
+                    .map((a) => (a as num).toInt())
+                    .toList(),
+              ))
+          .toList();
+      state = CartState(lines: lines);
+    } catch (_) {
+      // Corrupt cache never blocks shopping.
+    }
+  }
+
+  Future<void> _persist() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_key, jsonEncode(toJson()));
+    } catch (_) {
+      // Persistence is best-effort.
+    }
+  }
 
   void add({required int productId, List<int> addonIds = const []}) {
     final candidate = CartLine(productId: productId, addonIds: addonIds);
@@ -53,6 +92,7 @@ class CartStore extends StateNotifier<CartState> {
       lines.add(candidate);
     }
     state = CartState(lines: lines, couponCode: state.couponCode);
+    _persist();
   }
 
   void setQuantity(String key, int quantity) {
@@ -70,6 +110,7 @@ class CartStore extends StateNotifier<CartState> {
       );
     }
     state = CartState(lines: lines, couponCode: state.couponCode);
+    _persist();
   }
 
   void remove(String key) => setQuantity(key, 0);
@@ -79,9 +120,13 @@ class CartStore extends StateNotifier<CartState> {
       lines: state.lines,
       couponCode: (code == null || code.trim().isEmpty) ? null : code.trim(),
     );
+    _persist();
   }
 
-  void clear() => state = const CartState();
+  void clear() {
+    state = const CartState();
+    _persist();
+  }
 
   List<Map<String, dynamic>> toJson() =>
       state.lines.map((line) => line.toJson()).toList();

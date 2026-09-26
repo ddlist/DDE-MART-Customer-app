@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../verticals/helpers.dart';
 
 class OrdersApi {
   OrdersApi(this._dio);
@@ -145,7 +146,13 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               Text('Total ${data['total']}'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
+              DriverCard(
+                driver: data['driver'] is Map
+                    ? Map<String, dynamic>.from(data['driver'] as Map)
+                    : null,
+              ),
+              const SizedBox(height: 4),
               for (final item in items)
                 ListTile(
                   title: Text('${item['name']} × ${item['quantity']}'),

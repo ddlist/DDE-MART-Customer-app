@@ -26,6 +26,11 @@ class DdeCustomerApp extends ConsumerWidget {
         colorSchemeSeed: const Color(0xFF059669),
         useMaterial3: true,
       ),
+      darkTheme: ThemeData(
+        colorSchemeSeed: const Color(0xFF059669),
+        brightness: Brightness.dark,
+        useMaterial3: true,
+      ),
       routerConfig: router,
     );
   }

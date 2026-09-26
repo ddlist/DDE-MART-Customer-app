@@ -6,6 +6,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
@@ -369,7 +370,42 @@ class _SosRaiseScreenState extends ConsumerState<SosRaiseScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text('Sends your location to DDE-Mart safety staff.'),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            icon: const Icon(Icons.my_location_outlined),
+            label: const Text('Use my location'),
+            onPressed: _busy
+                ? null
+                : () async {
+                    var permission = await Geolocator.checkPermission();
+                    if (permission == LocationPermission.denied) {
+                      permission = await Geolocator.requestPermission();
+                    }
+                    if (permission == LocationPermission.denied ||
+                        permission == LocationPermission.deniedForever) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Location permission denied — enter manually.'),
+                          ),
+                        );
+                      }
+                      return;
+                    }
+                    try {
+                      final position = await Geolocator.getCurrentPosition();
+                      _lat.text = '${position.latitude}';
+                      _lng.text = '${position.longitude}';
+                    } catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Could not fix location.')),
+                        );
+                      }
+                    }
+                  },
+          ),
+          const SizedBox(height: 8),
           TextField(
             controller: _lat,
             keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),

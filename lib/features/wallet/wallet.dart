@@ -65,15 +65,31 @@ class WalletScreen extends ConsumerStatefulWidget {
   ConsumerState<WalletScreen> createState() => _WalletScreenState();
 }
 
-class _WalletScreenState extends ConsumerState<WalletScreen> {
+class _WalletScreenState extends ConsumerState<WalletScreen>
+    with WidgetsBindingObserver {
   final _amount = TextEditingController();
   String _method = _topupMethods.first;
   bool _busy = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _amount.dispose();
     super.dispose();
+  }
+
+  /// Returning from the gateway browser re-checks the credited balance.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.invalidate(walletProvider);
+    }
   }
 
   @override

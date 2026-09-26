@@ -3,8 +3,11 @@
 import 'package:dde_customer/features/cart/cart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUpAll(() => SharedPreferences.setMockInitialValues({}));
+
   ProviderContainer container() => ProviderContainer();
 
   group('CartStore', () {

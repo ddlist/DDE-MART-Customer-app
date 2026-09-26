@@ -320,7 +320,13 @@ class _ParcelTrackScreenState extends ConsumerState<ParcelTrackScreen> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               Text('Total ${order['total']}'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
+              DriverCard(
+                driver: order['driver'] is Map
+                    ? Map<String, dynamic>.from(order['driver'] as Map)
+                    : null,
+              ),
+              const SizedBox(height: 4),
               for (final entry in history)
                 ListTile(
                   leading: const Icon(Icons.circle, size: 10),
