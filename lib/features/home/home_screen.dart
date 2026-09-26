@@ -79,8 +79,19 @@ class HomeScreen extends ConsumerWidget {
               Wrap(
                 spacing: 8,
                 children: [
-                  for (final s in home.sections) Chip(label: Text('${s['name']}')),
+                  for (final s in home.sections)
+                    ActionChip(
+                      label: Text('${s['name']}'),
+                      onPressed: () => context.push(
+                        '/categories?section=${s['id']}&name=${Uri.encodeComponent('${s['name']}')}',
+                      ),
+                    ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              FilledButton.tonal(
+                onPressed: () => context.push('/stores'),
+                child: const Text('Browse stores'),
               ),
               const SizedBox(height: 16),
               Text('Banners', style: Theme.of(context).textTheme.titleMedium),
