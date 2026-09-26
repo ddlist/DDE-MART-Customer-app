@@ -1,6 +1,10 @@
 // DDE-Mart customer app — home feed (original).
 //
-// Public catalog endpoints (no token needed): sections, banners, products.
+// Banner carousel, stories rail, category circles, store cards and a
+// product grid. Public endpoints (no token): sections, banners, products,
+// stories, stores.
+
+import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +12,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../../core/widgets.dart';
+import '../cart/cart.dart';
+import '../catalog/catalog_api.dart';
 
 class HomeFeed {
   HomeFeed({
@@ -15,12 +22,14 @@ class HomeFeed {
     required this.banners,
     required this.products,
     required this.stories,
+    required this.stores,
   });
 
   final List<Map<String, dynamic>> sections;
   final List<Map<String, dynamic>> banners;
   final List<Map<String, dynamic>> products;
   final List<Map<String, dynamic>> stories;
+  final List<Map<String, dynamic>> stores;
 }
 
 final homeFeedProvider = FutureProvider<HomeFeed>((ref) async {
@@ -36,6 +45,7 @@ final homeFeedProvider = FutureProvider<HomeFeed>((ref) async {
     dio.get('/banners'),
     dio.get('/products', queryParameters: {'per_page': 10}),
     dio.get('/stories'),
+    dio.get('/stores', queryParameters: {'per_page': 10}),
   ]);
 
   return HomeFeed(
@@ -43,6 +53,7 @@ final homeFeedProvider = FutureProvider<HomeFeed>((ref) async {
     banners: listOf(results[1]),
     products: listOf(results[2]),
     stories: listOf(results[3]),
+    stores: listOf(results[4]),
   );
 });
 
@@ -57,114 +68,455 @@ class HomeScreen extends ConsumerWidget {
         title: const Text('DDE-Mart'),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_outline),
-            onPressed: () => context.push('/profile'),
+            icon: const Icon(Icons.search_outlined),
+            onPressed: () => context.push('/search'),
+          ),
+          IconButton(
+            icon: const Icon(Icons.shopping_cart_outlined),
+            onPressed: () => context.push('/cart'),
           ),
         ],
       ),
       body: feed.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(apiMessage(e)),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () => ref.invalidate(homeFeedProvider),
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
+        error: (e, _) => ErrorRetry(
+          error: e,
+          onRetry: () => ref.invalidate(homeFeedProvider),
         ),
         data: (home) => RefreshIndicator(
           onRefresh: () async => ref.invalidate(homeFeedProvider),
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.only(bottom: 24),
             children: [
-              Text('Sections', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: [
-                  for (final s in home.sections)
-                    ActionChip(
-                      label: Text('${s['name']}'),
-                      onPressed: () => context.push(
-                        '/categories?section=${s['id']}&name=${Uri.encodeComponent('${s['name']}')}',
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              FilledButton.tonal(
-                onPressed: () => context.push('/stores'),
-                child: const Text('Browse stores'),
-              ),
-              const SizedBox(height: 8),
-              FilledButton.tonal(
-                onPressed: () => context.push('/services'),
-                child: const Text('Services: parcel · rental · rides · more'),
-              ),
-              if (home.stories.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text('Stories', style: Theme.of(context).textTheme.titleMedium),
+              if (home.banners.isNotEmpty) ...[
+                _BannerCarousel(banners: home.banners),
                 const SizedBox(height: 8),
-                SizedBox(
-                  height: 84,
+              ],
+              if (home.stories.isNotEmpty)
+                _StoriesRail(stories: home.stories),
+              _SectionBlock(
+                title: 'Shop by category',
+                onSeeAll: () => context.push('/categories'),
+                child: SizedBox(
+                  height: 96,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
-                    itemCount: home.stories.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: home.sections.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
                     itemBuilder: (context, index) {
-                      final story = home.stories[index];
-                      final store = story['store'];
-                      final thumbnail = resolveAsset(story['thumbnail'] as String?);
-                      return Column(
-                        children: [
-                          CircleAvatar(
-                            radius: 28,
-                            backgroundImage: thumbnail != null
-                                ? NetworkImage(thumbnail)
-                                : null,
-                            child: thumbnail != null
-                                ? null
-                                : const Icon(Icons.play_circle_outline),
-                          ),
-                          const SizedBox(height: 4),
-                          SizedBox(
-                            width: 64,
-                            child: Text(
-                              '${(store is Map ? store['name'] : null) ?? 'Story'}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(fontSize: 11),
+                      final section = home.sections[index];
+                      return GestureDetector(
+                        onTap: () => context.push(
+                          '/categories?section=${section['id']}&name=${Uri.encodeComponent('${section['name']}')}',
+                        ),
+                        child: Column(
+                          children: [
+                            CircleAvatar(
+                              radius: 30,
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .primaryContainer,
+                              child: Text(
+                                '${section['name']}'.characters.firstOrNull ?? '?',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onPrimaryContainer,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 4),
+                            SizedBox(
+                              width: 72,
+                              child: Text(
+                                '${section['name']}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 11),
+                              ),
+                            ),
+                          ],
+                        ),
                       );
                     },
                   ),
                 ),
-              ],
-              const SizedBox(height: 16),
-              Text('Banners', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              for (final b in home.banners)
-                Card(child: ListTile(title: Text('${b['title'] ?? b['name'] ?? ''}'))),
-              const SizedBox(height: 16),
-              Text('Products', style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              for (final p in home.products)
-                Card(
-                  child: ListTile(
-                    title: Text('${p['name']}'),
-                    trailing: Text('${p['price']}'),
+              ),
+              _SectionBlock(
+                title: 'Stores near you',
+                onSeeAll: () => context.push('/stores'),
+                child: SizedBox(
+                  height: 210,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: home.stores.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
+                    itemBuilder: (context, index) =>
+                        _StoreCard(store: home.stores[index]),
                   ),
                 ),
+              ),
+              _SectionBlock(
+                title: 'Popular products',
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      mainAxisExtent: 250,
+                    ),
+                    itemCount: home.products.length,
+                    itemBuilder: (context, index) =>
+                        _ProductCard(product: home.products[index]),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: FilledButton.tonal(
+                  onPressed: () => context.push('/services'),
+                  child: const Text('Services: parcel · rental · rides · more'),
+                ),
+              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionBlock extends StatelessWidget {
+  const _SectionBlock({
+    required this.title,
+    required this.child,
+    this.onSeeAll,
+  });
+
+  final String title;
+  final Widget child;
+  final VoidCallback? onSeeAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SectionHeader(title: title, onSeeAll: onSeeAll),
+          ),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+class _BannerCarousel extends StatefulWidget {
+  const _BannerCarousel({required this.banners});
+
+  final List<Map<String, dynamic>> banners;
+
+  @override
+  State<_BannerCarousel> createState() => _BannerCarouselState();
+}
+
+class _BannerCarouselState extends State<_BannerCarousel> {
+  final _controller = PageController(viewportFraction: 0.92);
+  int _page = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.banners.length > 1) {
+      _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+        if (!mounted) return;
+        final next = (_page + 1) % widget.banners.length;
+        _controller.animateToPage(
+          next,
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOut,
+        );
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 170,
+          child: PageView.builder(
+            controller: _controller,
+            itemCount: widget.banners.length,
+            onPageChanged: (index) => setState(() => _page = index),
+            itemBuilder: (context, index) {
+              final banner = widget.banners[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: ApiImage(
+                  path: banner['image'] as String?,
+                  height: 170,
+                  borderRadius: BorderRadius.circular(16),
+                  icon: Icons.campaign_outlined,
+                ),
+              );
+            },
+          ),
+        ),
+        if (widget.banners.length > 1)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var i = 0; i < widget.banners.length; i++)
+                  Container(
+                    width: _page == i ? 20 : 8,
+                    height: 8,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                      color: _page == i
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.surfaceContainerHighest,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _StoriesRail extends StatelessWidget {
+  const _StoriesRail({required this.stories});
+
+  final List<Map<String, dynamic>> stories;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 100,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        itemCount: stories.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
+        itemBuilder: (context, index) {
+          final story = stories[index];
+          final store = story['store'];
+          return Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 2,
+                  ),
+                ),
+                child: CircleAvatar(
+                  radius: 28,
+                  backgroundImage: resolveAsset(story['thumbnail'] as String?) != null
+                      ? NetworkImage(resolveAsset(story['thumbnail'] as String?)!)
+                      : null,
+                  child: resolveAsset(story['thumbnail'] as String?) != null
+                      ? null
+                      : const Icon(Icons.play_circle_outline),
+                ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                width: 64,
+                child: Text(
+                  '${(store is Map ? store['name'] : null) ?? 'Story'}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _StoreCard extends StatelessWidget {
+  const _StoreCard({required this.store});
+
+  final Map<String, dynamic> store;
+
+  @override
+  Widget build(BuildContext context) {
+    final open = (store['is_open'] ?? false) == true;
+    return GestureDetector(
+      onTap: () => context.push('/store/${store['id']}'),
+      child: SizedBox(
+        width: 170,
+        child: Card(
+          clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                children: [
+                  ApiImage(
+                    path: store['image'] as String?,
+                    height: 110,
+                    width: 170,
+                    icon: Icons.storefront_outlined,
+                  ),
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: open ? Colors.green : Colors.grey,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        open ? 'Open' : 'Closed',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${store['name']}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    if ('${store['address'] ?? ''}'.isNotEmpty)
+                      Text(
+                        '${store['address']}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProductCard extends ConsumerWidget {
+  const _ProductCard({required this.product});
+
+  final Map<String, dynamic> product;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final id = product['id'] as int;
+    final price = sellingPrice(product);
+    final list = (product['price'] as num?)?.toDouble() ?? price;
+
+    return GestureDetector(
+      onTap: () => context.push('/product/$id'),
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                ApiImage(
+                  path: product['image'] as String?,
+                  height: 120,
+                  width: double.infinity,
+                  icon: Icons.fastfood_outlined,
+                ),
+                if (list > price)
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: DiscountBadge(
+                      label: '-${(((list - price) / list) * 100).round()}%',
+                    ),
+                  ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${product['name']}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      PriceText(price: price, was: list > price ? list : null),
+                      IconButton.filledTonal(
+                        icon: const Icon(Icons.add, size: 18),
+                        onPressed: () {
+                          ref.read(cartStoreProvider.notifier).add(productId: id);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Added to cart.')),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

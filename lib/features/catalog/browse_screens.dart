@@ -6,11 +6,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../../core/widgets.dart';
 import '../cart/cart.dart';
 import '../verticals/life.dart';
 import 'catalog_api.dart';
-
-String _money(num value) => value.toDouble().toStringAsFixed(2);
 
 class ProductCard extends ConsumerWidget {
   const ProductCard({super.key, required this.product});
@@ -20,20 +19,51 @@ class ProductCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final id = product['id'] as int;
+    final price = sellingPrice(product);
+    final list = (product['price'] as num?)?.toDouble() ?? price;
+
     return Card(
-      child: ListTile(
-        title: Text('${product['name']}'),
-        subtitle: Text(_money(sellingPrice(product))),
-        trailing: IconButton(
-          icon: const Icon(Icons.add_shopping_cart_outlined),
-          onPressed: () {
-            ref.read(cartStoreProvider.notifier).add(productId: id);
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Added to cart.')),
-            );
-          },
-        ),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: InkWell(
         onTap: () => context.push('/product/$id'),
+        child: Row(
+          children: [
+            ApiImage(
+              path: product['image'] as String?,
+              height: 84,
+              width: 84,
+              icon: Icons.fastfood_outlined,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${product['name']}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 4),
+                    PriceText(price: price, was: list > price ? list : null),
+                  ],
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              onPressed: () {
+                ref.read(cartStoreProvider.notifier).add(productId: id);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Added to cart.')),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -194,15 +224,53 @@ class StoreScreen extends ConsumerWidget {
           }
           final store = snapshot.data![0] as Map<String, dynamic>;
           final products = snapshot.data![1] as List<Map<String, dynamic>>;
+          final open = (store['is_open'] ?? false) == true;
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              Text('${store['name']}', style: Theme.of(context).textTheme.headlineSmall),
-              if ('${store['description'] ?? ''}'.isNotEmpty)
-                Text('${store['description']}'),
+              Stack(
+                children: [
+                  ApiImage(
+                    path: store['image'] as String?,
+                    height: 180,
+                    width: double.infinity,
+                    borderRadius: BorderRadius.circular(16),
+                    icon: Icons.storefront_outlined,
+                  ),
+                  Positioned(
+                    top: 10,
+                    left: 10,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: open ? Colors.green : Colors.grey,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        open ? 'Open now' : 'Closed',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
+              Text('${store['name']}', style: Theme.of(context).textTheme.headlineSmall),
+              if ('${store['address'] ?? ''}'.isNotEmpty)
+                Text('${store['address']}', style: Theme.of(context).textTheme.bodySmall),
+              if ('${store['description'] ?? ''}'.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text('${store['description']}'),
+                ),
+              const SizedBox(height: 12),
+              SectionHeader(title: 'Menu', onSeeAll: null),
               for (final p in products) ProductCard(product: p),
-              if (products.isEmpty) const Text('No products in this store.'),
+              if (products.isEmpty) const EmptyState(message: 'No products in this store.'),
             ],
           );
         },
@@ -270,9 +338,29 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              Stack(
+                children: [
+                  ApiImage(
+                    path: product['image'] as String?,
+                    height: 220,
+                    width: double.infinity,
+                    borderRadius: BorderRadius.circular(16),
+                    icon: Icons.fastfood_outlined,
+                  ),
+                  if (((product['discount_price'] as num?)?.toDouble() ?? 0) > 0)
+                    const Positioned(
+                      top: 10,
+                      left: 10,
+                      child: DiscountBadge(label: 'SALE'),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
               Text('${product['name']}', style: Theme.of(context).textTheme.headlineSmall),
-              Text(
-                _money(sellingPrice(product)),
+              const SizedBox(height: 4),
+              PriceText(
+                price: sellingPrice(product),
+                was: (product['price'] as num?)?.toDouble(),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               if ('${product['description'] ?? ''}'.isNotEmpty)
@@ -285,7 +373,7 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                 Text('Extras', style: Theme.of(context).textTheme.titleMedium),
                 for (final addon in addons)
                   CheckboxListTile(
-                    title: Text('${addon['name']} (+${_money((addon['price'] as num?) ?? 0)})'),
+                    title: Text('${addon['name']} (+${((addon['price'] as num?) ?? 0).toDouble().toStringAsFixed(2)})'),
                     value: _selectedAddons.contains(addon['id'] as int),
                     onChanged: (value) {
                       setState(() {
