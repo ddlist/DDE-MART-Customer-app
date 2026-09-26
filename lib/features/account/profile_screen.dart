@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
+import '../../core/push.dart';
 import '../auth/auth_api.dart';
 
 final meProvider = FutureProvider<Map<String, dynamic>>((ref) async {
@@ -41,6 +42,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } catch (_) {
       // Token may already be dead — still sign out locally.
     } finally {
+      await ref.read(pushServiceProvider).unregister();
       await ref.read(authStoreProvider.notifier).signOut();
       if (mounted) context.go('/login');
     }
@@ -84,6 +86,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       await ref.read(authApiProvider).deleteAccount(
             password: text.isEmpty ? null : text,
           );
+      await ref.read(pushServiceProvider).unregister();
       await ref.read(authStoreProvider.notifier).signOut();
       if (mounted) context.go('/login');
     } catch (e) {
