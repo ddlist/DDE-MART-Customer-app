@@ -71,6 +71,17 @@ String apiMessage(Object error) {
   return 'Something went wrong. Please try again.';
 }
 
+/// Absolute URL for backend asset paths. The API mixes absolute CDN links
+/// with app-relative storage paths — resolve the latter against the API
+/// host actually in use (LAN IP on device, localhost on emulator).
+String? resolveAsset(String? path) {
+  if (path == null || path.isEmpty) return null;
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  final base = Uri.parse(AppConfig.apiBaseUrl);
+  final host = '${base.scheme}://${base.host}${base.hasPort ? ':${base.port}' : ''}';
+  return '$host${path.startsWith('/') ? '' : '/'}$path';
+}
+
 /// GET /app-config payload (public launch gate).
 class LaunchConfig {
   LaunchConfig({

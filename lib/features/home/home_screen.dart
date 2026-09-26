@@ -119,15 +119,15 @@ class HomeScreen extends ConsumerWidget {
                     itemBuilder: (context, index) {
                       final story = home.stories[index];
                       final store = story['store'];
+                      final thumbnail = resolveAsset(story['thumbnail'] as String?);
                       return Column(
                         children: [
                           CircleAvatar(
                             radius: 28,
-                            backgroundImage:
-                                (story['thumbnail'] as String?)?.isNotEmpty == true
-                                    ? NetworkImage(story['thumbnail'] as String)
-                                    : null,
-                            child: (story['thumbnail'] as String?)?.isNotEmpty == true
+                            backgroundImage: thumbnail != null
+                                ? NetworkImage(thumbnail)
+                                : null,
+                            child: thumbnail != null
                                 ? null
                                 : const Icon(Icons.play_circle_outline),
                           ),
