@@ -124,7 +124,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           const SizedBox(height: 8),
           Text('Signed in as ${auth.phone ?? ''}', style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.help_outline),
+              title: const Text('Help & policies'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.push('/pages'),
+            ),
+          ),
+          const SizedBox(height: 8),
           FilledButton.tonal(onPressed: _busy ? null : _logout, child: const Text('Sign out')),
           const SizedBox(height: 12),
           OutlinedButton(

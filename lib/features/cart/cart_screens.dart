@@ -76,6 +76,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   final _coupon = TextEditingController();
   String _method = 'cod';
   bool _busy = false;
+  bool _schedule = false;
+  DateTime? _scheduledAt;
 
   @override
   void dispose() {
@@ -90,6 +92,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     if (cart.isEmpty) return;
 
     setState(() => _busy = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
     try {
       final order = await ref.read(checkoutApiProvider).place(
             items: cart.lines.map((line) => line.toJson()).toList(),
@@ -97,15 +101,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             paymentMethod: _method,
             address: _address.text.trim(),
             notes: _notes.text.trim(),
+            scheduledAt: _schedule ? _scheduledAt : null,
           );
       ref.read(cartStoreProvider.notifier).clear();
-      if (mounted) context.push('/order/${order['id']}');
+      router.push('/order-success/${order['id']}');
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(apiMessage(e))),
-        );
-      }
+      messenger.showSnackBar(SnackBar(content: Text(apiMessage(e))));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -148,6 +149,43 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             controller: _notes,
             decoration: const InputDecoration(labelText: 'Notes (optional)'),
           ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            title: const Text('Schedule for later'),
+            value: _schedule,
+            onChanged: (value) => setState(() {
+              _schedule = value;
+              _scheduledAt = null;
+            }),
+          ),
+          if (_schedule)
+            OutlinedButton.icon(
+              icon: const Icon(Icons.schedule_outlined),
+              label: Text(
+                _scheduledAt == null
+                    ? 'Pick date & time'
+                    : '${_scheduledAt!.day}/${_scheduledAt!.month} ${_scheduledAt!.hour.toString().padLeft(2, '0')}:${_scheduledAt!.minute.toString().padLeft(2, '0')}',
+              ),
+              onPressed: () async {
+                final pickerContext = context;
+                final date = await showDatePicker(
+                  context: pickerContext,
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(const Duration(days: 7)),
+                );
+                if (date == null || !pickerContext.mounted) return;
+                final time = await showTimePicker(
+                  context: pickerContext,
+                  initialTime: TimeOfDay.now(),
+                );
+                if (time == null || !pickerContext.mounted) return;
+                setState(() {
+                  _scheduledAt = DateTime(
+                    date.year, date.month, date.day, time.hour, time.minute,
+                  );
+                });
+              },
+            ),
           const SizedBox(height: 16),
           Text('Payment', style: Theme.of(context).textTheme.titleMedium),
           RadioGroup<String>(
@@ -208,3 +246,4 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     );
   }
 }
+

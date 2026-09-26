@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/push.dart';
+import 'core/theme.dart';
 import 'router.dart';
 
 void main() {
@@ -22,15 +23,8 @@ class DdeCustomerApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'DDE-Mart',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF059669),
-        useMaterial3: true,
-      ),
-      darkTheme: ThemeData(
-        colorSchemeSeed: const Color(0xFF059669),
-        brightness: Brightness.dark,
-        useMaterial3: true,
-      ),
+      theme: DdeTheme.light(),
+      darkTheme: DdeTheme.dark(),
       routerConfig: router,
     );
   }

@@ -23,6 +23,7 @@ class HomeFeed {
     required this.products,
     required this.stories,
     required this.stores,
+    required this.ads,
   });
 
   final List<Map<String, dynamic>> sections;
@@ -30,6 +31,7 @@ class HomeFeed {
   final List<Map<String, dynamic>> products;
   final List<Map<String, dynamic>> stories;
   final List<Map<String, dynamic>> stores;
+  final List<Map<String, dynamic>> ads;
 }
 
 final homeFeedProvider = FutureProvider<HomeFeed>((ref) async {
@@ -46,6 +48,7 @@ final homeFeedProvider = FutureProvider<HomeFeed>((ref) async {
     dio.get('/products', queryParameters: {'per_page': 10}),
     dio.get('/stories'),
     dio.get('/stores', queryParameters: {'per_page': 10}),
+    dio.get('/ads'),
   ]);
 
   return HomeFeed(
@@ -54,6 +57,7 @@ final homeFeedProvider = FutureProvider<HomeFeed>((ref) async {
     products: listOf(results[2]),
     stories: listOf(results[3]),
     stores: listOf(results[4]),
+    ads: listOf(results[5]),
   );
 });
 
@@ -117,8 +121,11 @@ class HomeScreen extends ConsumerWidget {
                               backgroundColor: Theme.of(context)
                                   .colorScheme
                                   .primaryContainer,
-                              child: Text(
-                                '${section['name']}'.characters.firstOrNull ?? '?',
+                            child: Text(
+                              () {
+                                final name = '${section['name']}';
+                                return name.isEmpty ? '?' : name[0];
+                              }(),
                                 style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w800,
@@ -188,6 +195,68 @@ class HomeScreen extends ConsumerWidget {
                   child: const Text('Services: parcel · rental · rides · more'),
                 ),
               ),
+              if (home.ads.isNotEmpty)
+                _SectionBlock(
+                  title: 'Offers for you',
+                  child: SizedBox(
+                    height: 140,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: home.ads.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 12),
+                      itemBuilder: (context, index) {
+                        final ad = home.ads[index];
+                        return SizedBox(
+                          width: 260,
+                          child: Card(
+                            clipBehavior: Clip.antiAlias,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                ApiImage(
+                                  path: ad['cover'] as String?,
+                                  width: 260,
+                                  icon: Icons.local_offer_outlined,
+                                ),
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.transparent,
+                                          Colors.black.withValues(alpha: 0.7),
+                                        ],
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '${ad['title'] ?? ''}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
             ],
           ),
         ),

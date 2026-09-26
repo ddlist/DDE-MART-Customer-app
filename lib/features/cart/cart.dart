@@ -194,6 +194,7 @@ class CheckoutApi {
     required String paymentMethod,
     String? address,
     String? notes,
+    DateTime? scheduledAt,
   }) async {
     final response = await _dio.post('/checkout', data: {
       'items': items,
@@ -201,6 +202,7 @@ class CheckoutApi {
       'payment_method': paymentMethod,
       if (address != null && address.isNotEmpty) 'address': {'address': address},
       if (notes != null && notes.isNotEmpty) 'notes': notes,
+      if (scheduledAt != null) 'scheduled_at': scheduledAt.toIso8601String(),
     });
     return Map<String, dynamic>.from((response.data as Map)['data'] as Map);
   }

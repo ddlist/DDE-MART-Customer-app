@@ -15,7 +15,10 @@ import 'features/auth/account_screens.dart';
 import 'features/auth/login_screen.dart';
 import 'features/cart/cart_screens.dart';
 import 'features/catalog/browse_screens.dart';
+import 'features/content/pages.dart';
 import 'features/home/home_screen.dart';
+import 'features/onboarding/onboarding.dart';
+import 'features/orders/order_success.dart';
 import 'features/orders/orders.dart';
 import 'features/support/support.dart';
 import 'features/verticals/life.dart';
@@ -51,7 +54,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final gate = ref.watch(launchGateProvider);
 
   return GoRouter(
-    initialLocation: '/home',
+    initialLocation: '/start',
     redirect: (context, state) {
       final location = state.matchedLocation;
 
@@ -62,7 +65,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/update';
       }
 
-      const public = ['/login', '/register', '/otp', '/forgot', '/maintenance', '/update'];
+      const public = [
+        '/start', '/login', '/register', '/otp', '/forgot',
+        '/onboarding', '/location-enable', '/maintenance', '/update',
+      ];
       if (!auth.signedIn && !public.any(location.startsWith)) {
         return '/login';
       }
@@ -72,11 +78,24 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(path: '/start', builder: (context, state) => const StartupScreen()),
+      GoRoute(path: '/onboarding', builder: (context, state) => const OnboardingScreen()),
+      GoRoute(
+        path: '/location-enable',
+        builder: (context, state) => const LocationEnableScreen(),
+      ),
       ShellRoute(
         builder: (context, state, child) => CustomerShell(child: child),
         routes: [
           GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
           GoRoute(path: '/search', builder: (context, state) => const SearchScreen()),
+      GoRoute(path: '/pages', builder: (context, state) => const PagesScreen()),
+      GoRoute(
+        path: '/page/:slug',
+        builder: (context, state) => PageDetailScreen(
+          slug: state.pathParameters['slug']!,
+        ),
+      ),
           GoRoute(path: '/cart', builder: (context, state) => const CartScreen()),
           GoRoute(path: '/orders', builder: (context, state) => const OrdersScreen()),
           GoRoute(path: '/wallet', builder: (context, state) => const WalletScreen()),
@@ -120,6 +139,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/order/:id',
         builder: (context, state) => OrderDetailScreen(
+          orderId: int.parse(state.pathParameters['id']!),
+        ),
+      ),
+      GoRoute(
+        path: '/order-success/:id',
+        builder: (context, state) => OrderSuccessScreen(
           orderId: int.parse(state.pathParameters['id']!),
         ),
       ),

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/api_client.dart';
 import '../../core/auth_store.dart';
 import 'auth_api.dart';
+import 'auth_chrome.dart';
 
 Future<void> _savePayload(WidgetRef ref, Map<String, dynamic> payload) {
   return ref.read(authStoreProvider.notifier).signIn(
@@ -20,6 +21,11 @@ void _fail(BuildContext context, Object e) {
   ScaffoldMessenger.of(context).showSnackBar(
     SnackBar(content: Text(apiMessage(e))),
   );
+}
+
+/// Snackbar via a pre-captured messenger (lint-clean across async gaps).
+void _failMsg(ScaffoldMessengerState messenger, Object e) {
+  messenger.showSnackBar(SnackBar(content: Text(apiMessage(e))));
 }
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -44,41 +50,87 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create account')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          TextField(controller: _name, decoration: const InputDecoration(labelText: 'Name')),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _phone,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Phone'),
-          ),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: _busy
-                ? null
-                : () async {
-                    setState(() => _busy = true);
-                    try {
-                      await _savePayload(
-                        ref,
-                        await ref.read(authApiProvider).register(
-                              name: _name.text.trim(),
-                              phone: _phone.text.trim(),
-                            ),
-                      );
-                      if (context.mounted) context.go('/home');
-                    } catch (e) {
-                      if (context.mounted) _fail(context, e);
-                    } finally {
-                      if (mounted) setState(() => _busy = false);
-                    }
-                  },
-            child: Text(_busy ? 'Creating…' : 'Create account'),
-          ),
-        ],
+      body: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const AuthHeader(
+              title: 'Join DDE-Mart',
+              subtitle: 'One account for food, rides and services.',
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _name,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(
+                      labelText: 'Full name',
+                      prefixIcon: Icon(Icons.person_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone',
+                      prefixIcon: Icon(Icons.phone_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  FilledButton(
+                    onPressed: _busy
+                        ? null
+                        : () async {
+                            if (_name.text.trim().isEmpty ||
+                                _phone.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Enter your name and phone.'),
+                                ),
+                              );
+                              return;
+                            }
+                            setState(() => _busy = true);
+                            final messenger = ScaffoldMessenger.of(context);
+                            try {
+                              await _savePayload(
+                                ref,
+                                await ref.read(authApiProvider).register(
+                                      name: _name.text.trim(),
+                                      phone: _phone.text.trim(),
+                                    ),
+                              );
+                              if (context.mounted) {
+                                context.go('/home');
+                              }
+                            } catch (e) {
+                              _failMsg(messenger, e);
+                            } finally {
+                              if (mounted) setState(() => _busy = false);
+                            }
+                          },
+                    child: Text(_busy ? 'Creating…' : 'Create account'),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text('Have an account?'),
+                      TextButton(
+                        onPressed: () => context.go('/login'),
+                        child: const Text('Sign in'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -95,85 +147,108 @@ class OtpScreen extends ConsumerStatefulWidget {
 
 class _OtpScreenState extends ConsumerState<OtpScreen> {
   late final _phone = TextEditingController(text: widget.phone ?? '');
-  final _code = TextEditingController();
   bool _busy = false;
+  bool _sent = false;
 
   @override
   void dispose() {
     _phone.dispose();
-    _code.dispose();
     super.dispose();
+  }
+
+  Future<void> _verify(String code) async {
+    setState(() => _busy = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+    try {
+      await _savePayload(
+        ref,
+        await ref.read(authApiProvider).otpVerify(
+              phone: _phone.text.trim(),
+              code: code,
+            ),
+      );
+      router.go('/home');
+    } catch (e) {
+      _failMsg(messenger, e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sign in with code')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          TextField(
-            controller: _phone,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Phone'),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _busy
-                ? null
-                : () async {
-                    setState(() => _busy = true);
-                    try {
-                      final debug = await ref
-                          .read(authApiProvider)
-                          .otpRequest(_phone.text.trim());
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              debug == null ? 'Code sent.' : 'Code sent (debug: $debug).',
-                            ),
-                          ),
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) _fail(context, e);
-                    } finally {
-                      if (mounted) setState(() => _busy = false);
-                    }
-                  },
-            child: const Text('Send code'),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _code,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: '6-digit code'),
-          ),
-          const SizedBox(height: 20),
-          FilledButton(
-            onPressed: _busy
-                ? null
-                : () async {
-                    setState(() => _busy = true);
-                    try {
-                      await _savePayload(
-                        ref,
-                        await ref.read(authApiProvider).otpVerify(
-                              phone: _phone.text.trim(),
-                              code: _code.text.trim(),
-                            ),
-                      );
-                      if (context.mounted) context.go('/home');
-                    } catch (e) {
-                      if (context.mounted) _fail(context, e);
-                    } finally {
-                      if (mounted) setState(() => _busy = false);
-                    }
-                  },
-            child: const Text('Verify & sign in'),
-          ),
-        ],
+      body: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const AuthHeader(
+              title: 'Check your SMS',
+              subtitle: 'Enter the 6-digit code we sent you.',
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone',
+                      prefixIcon: Icon(Icons.phone_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.tonal(
+                    onPressed: _busy
+                        ? null
+                        : () async {
+                            setState(() => _busy = true);
+                            final messenger = ScaffoldMessenger.of(context);
+                            try {
+                              final debug = await ref
+                                  .read(authApiProvider)
+                                  .otpRequest(_phone.text.trim());
+                              if (!mounted) return;
+                              setState(() => _sent = true);
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    debug == null
+                                        ? 'Code sent.'
+                                        : 'Code sent (debug: $debug).',
+                                  ),
+                                ),
+                              );
+                            } catch (e) {
+                              if (context.mounted) _fail(context, e);
+                            } finally {
+                              if (mounted) setState(() => _busy = false);
+                            }
+                          },
+                    child: Text(_sent ? 'Resend code' : 'Send code'),
+                  ),
+                  if (_sent) ...[
+                    const SizedBox(height: 24),
+                    Text(
+                      'Enter code',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 12),
+                    PinCodeField(onCompleted: _verify),
+                    if (_busy)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 16),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -188,7 +263,6 @@ class ForgotScreen extends ConsumerStatefulWidget {
 
 class _ForgotScreenState extends ConsumerState<ForgotScreen> {
   final _phone = TextEditingController();
-  final _code = TextEditingController();
   final _password = TextEditingController();
   bool _busy = false;
   bool _sent = false;
@@ -196,80 +270,111 @@ class _ForgotScreenState extends ConsumerState<ForgotScreen> {
   @override
   void dispose() {
     _phone.dispose();
-    _code.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  Future<void> _reset(String code) async {
+    if (_password.text.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Type your new password first (min 8).')),
+      );
+      return;
+    }
+    setState(() => _busy = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+    try {
+      await _savePayload(
+        ref,
+        await ref.read(authApiProvider).passwordReset(
+              phone: _phone.text.trim(),
+              code: code,
+              password: _password.text,
+            ),
+      );
+      router.go('/home');
+    } catch (e) {
+      _failMsg(messenger, e);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Reset password')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          TextField(
-            controller: _phone,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Phone'),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: _busy
-                ? null
-                : () async {
-                    setState(() => _busy = true);
-                    try {
-                      await ref.read(authApiProvider).passwordRequest(_phone.text.trim());
-                      setState(() => _sent = true);
-                    } catch (e) {
-                      if (context.mounted) _fail(context, e);
-                    } finally {
-                      if (mounted) setState(() => _busy = false);
-                    }
-                  },
-            child: const Text('Send reset code'),
-          ),
-          if (_sent) ...[
-            const SizedBox(height: 12),
-            TextField(
-              controller: _code,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Reset code'),
+      body: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const AuthHeader(
+              title: 'Reset password',
+              subtitle: 'We will text you a reset code.',
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _password,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'New password (min 8)'),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: _busy
-                  ? null
-                  : () async {
-                      setState(() => _busy = true);
-                      try {
-                        await _savePayload(
-                          ref,
-                          await ref.read(authApiProvider).passwordReset(
-                                phone: _phone.text.trim(),
-                                code: _code.text.trim(),
-                                password: _password.text,
-                              ),
-                        );
-                        if (context.mounted) context.go('/home');
-                      } catch (e) {
-                        if (context.mounted) _fail(context, e);
-                      } finally {
-                        if (mounted) setState(() => _busy = false);
-                      }
-                    },
-              child: const Text('Set new password'),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone',
+                      prefixIcon: Icon(Icons.phone_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.tonal(
+                    onPressed: _busy
+                        ? null
+                        : () async {
+                            setState(() => _busy = true);
+                            final messenger = ScaffoldMessenger.of(context);
+                            try {
+                              await ref
+                                  .read(authApiProvider)
+                                  .passwordRequest(_phone.text.trim());
+                              if (mounted) setState(() => _sent = true);
+                            } catch (e) {
+                              _failMsg(messenger, e);
+                            } finally {
+                              if (mounted) setState(() => _busy = false);
+                            }
+                          },
+                    child: const Text('Send reset code'),
+                  ),
+                  if (_sent) ...[
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: _password,
+                      obscureText: true,
+                      decoration: const InputDecoration(
+                        labelText: 'New password (min 8)',
+                        prefixIcon: Icon(Icons.lock_outlined),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Enter code',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 12),
+                    PinCodeField(onCompleted: _reset),
+                    if (_busy)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 16),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                  ],
+                ],
+              ),
             ),
           ],
-        ],
+        ),
       ),
     );
   }
 }
+
