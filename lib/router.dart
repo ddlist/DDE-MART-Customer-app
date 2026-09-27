@@ -20,6 +20,7 @@ import 'features/home/home_screen.dart';
 import 'features/onboarding/onboarding.dart';
 import 'features/orders/order_success.dart';
 import 'features/orders/orders.dart';
+import 'features/reviews/reviews.dart';
 import 'features/support/support.dart';
 import 'features/verticals/life.dart';
 import 'features/verticals/rental_ride.dart';
@@ -134,6 +135,24 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => ProductScreen(
           productId: int.parse(state.pathParameters['id']!),
         ),
+      ),
+      GoRoute(
+        path: '/product/:id/reviews',
+        builder: (context, state) => ReviewsScreen(
+          productId: int.parse(state.pathParameters['id']!),
+          title: 'Product reviews',
+        ),
+      ),
+      GoRoute(
+        path: '/store/:id/reviews',
+        builder: (context, state) => ReviewsScreen(
+          storeId: int.parse(state.pathParameters['id']!),
+          title: 'Store reviews',
+        ),
+      ),
+      GoRoute(
+        path: '/my-reviews',
+        builder: (context, state) => const MyReviewsScreen(),
       ),
       GoRoute(path: '/checkout', builder: (context, state) => const CheckoutScreen()),
       GoRoute(

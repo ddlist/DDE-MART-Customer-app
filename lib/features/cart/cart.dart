@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/api_client.dart';
+import '../catalog/catalog_api.dart';
 
 class CartLine {
   CartLine({required this.productId, this.quantity = 1, List<int>? addonIds})
@@ -135,6 +136,57 @@ class CartStore extends StateNotifier<CartState> {
 final cartStoreProvider = StateNotifierProvider<CartStore, CartState>(
   (ref) => CartStore(),
 );
+
+/// One cart line joined with its live product (name, image, price, veg).
+class CartLineDetail {
+  CartLineDetail({required this.line, required this.product});
+
+  final CartLine line;
+  final Map<String, dynamic> product;
+
+  double get unitPrice {
+    var price = sellingPrice(product);
+    final addons = ((product['addons'] as List?) ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map));
+    for (final addon in addons) {
+      if (line.addonIds.contains(addon['id'] as int)) {
+        price += ((addon['price'] as num?) ?? 0).toDouble();
+      }
+    }
+    return price;
+  }
+
+  double get lineTotal => unitPrice * line.quantity;
+
+  List<String> get addonNames {
+    final addons = ((product['addons'] as List?) ?? [])
+        .map((e) => Map<String, dynamic>.from(e as Map));
+    return [
+      for (final addon in addons)
+        if (line.addonIds.contains(addon['id'] as int))
+          '${addon['name']}',
+    ];
+  }
+}
+
+/// Enriched cart for display. A product that fails to load keeps a fallback
+/// row so one bad item never blanks the whole cart.
+final cartDetailsProvider = FutureProvider<List<CartLineDetail>>((ref) async {
+  final cart = ref.watch(cartStoreProvider);
+  if (cart.isEmpty) return [];
+  final api = ref.watch(catalogApiProvider);
+  return Future.wait(cart.lines.map((line) async {
+    try {
+      return CartLineDetail(
+          line: line, product: await api.product(line.productId));
+    } catch (_) {
+      return CartLineDetail(line: line, product: {
+        'id': line.productId,
+        'name': 'Product #${line.productId}',
+      });
+    }
+  }));
+});
 
 class Quote {
   Quote({

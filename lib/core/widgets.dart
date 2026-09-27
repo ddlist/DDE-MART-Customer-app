@@ -187,6 +187,91 @@ class EmptyState extends StatelessWidget {
   }
 }
 
+/// Indian veg / non-veg mark: green square+dot for veg, red square for non-veg.
+class VegMark extends StatelessWidget {
+  const VegMark({super.key, required this.veg});
+
+  final bool veg;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = veg ? Colors.green : const Color(0xFFB3261E);
+    return Container(
+      width: 18,
+      height: 18,
+      decoration: BoxDecoration(
+        border: Border.all(color: color, width: 1.6),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Center(
+        child: Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            shape: veg ? BoxShape.circle : BoxShape.rectangle,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Star rating row: green pill with average (Zomato-style) plus review count.
+class StarsRow extends StatelessWidget {
+  const StarsRow({super.key, this.avg, this.count, this.size = 16});
+
+  final double? avg;
+  final int? count;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    if (avg == null || avg! <= 0) {
+      return Text(
+        count != null && count! > 0 ? '$count ratings' : 'No ratings yet',
+        style: Theme.of(context).textTheme.bodySmall,
+      );
+    }
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.green,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                avg!.toStringAsFixed(1),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: size - 2,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Icon(Icons.star, color: Colors.white, size: size - 2),
+            ],
+          ),
+        ),
+        if (count != null) ...[
+          const SizedBox(width: 6),
+          Text(
+            '$count rating${count == 1 ? '' : 's'}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  decoration: TextDecoration.underline,
+                ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 class ErrorRetry extends StatelessWidget {
   const ErrorRetry({super.key, required this.error, required this.onRetry});
 
