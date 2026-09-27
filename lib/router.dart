@@ -56,6 +56,13 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: '/start',
+    onException: (context, state, router) {
+      // ignore: avoid_print
+      print(
+          'ROUTER_EXCEPTION uri=${state.uri} matched=${state.matchedLocation} '
+          'stack=${router.routerDelegate.currentConfiguration.matches.map((m) => m.matchedLocation).toList()}');
+      router.go('/home');
+    },
     redirect: (context, state) {
       final location = state.matchedLocation;
 

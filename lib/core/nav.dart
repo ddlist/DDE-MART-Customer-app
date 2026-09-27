@@ -22,9 +22,12 @@ extension SafeNav on BuildContext {
   /// with sub-second repeats of the same location dropped as double-taps.
   void safePush(String location, {Object? extra}) {
     final router = GoRouter.of(this);
-    final stacked = router.routerDelegate.currentConfiguration.matches
+    final stackedMatches = router.routerDelegate.currentConfiguration.matches
         .map((m) => m.matchedLocation)
-        .contains(location);
+        .toList();
+    // ignore: avoid_print
+    print('SAFE_PUSH -> $location | stack=$stackedMatches');
+    final stacked = stackedMatches.contains(location);
     if (stacked) {
       go(location);
       return;
