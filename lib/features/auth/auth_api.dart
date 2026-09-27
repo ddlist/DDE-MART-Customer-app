@@ -31,6 +31,15 @@ class AuthApi {
     );
   }
 
+  Future<AuthPayload> updateProfile({String? name, String? email}) async {
+    return _data(
+      await _dio.put('/me', data: {
+        'name': ?name,
+        'email': ?email,
+      }),
+    );
+  }
+
   Future<AuthPayload> login({
     required String phone,
     required String password,

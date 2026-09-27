@@ -129,6 +129,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(
+        path: '/profile/edit',
+        builder: (context, state) => EditProfileScreen(
+          initial: state.extra is Map
+              ? Map<String, dynamic>.from(state.extra as Map)
+              : null,
+        ),
+      ),
+      GoRoute(
         path: '/categories',
         builder: (context, state) {
           final params = state.uri.queryParameters;
