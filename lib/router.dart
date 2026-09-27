@@ -50,12 +50,28 @@ final launchGateProvider = FutureProvider<GateDecision>((ref) async {
   }
 });
 
-final routerProvider = Provider<GoRouter>((ref) {
-  final auth = ref.watch(authStoreProvider);
-  final gate = ref.watch(launchGateProvider);
+/// Bumps whenever auth or the launch gate changes so the router re-runs its
+/// redirect without ever recreating the [GoRouter] itself. Recreating the
+/// router mid-session (the old `ref.watch` approach) swaps Navigator
+/// delegates under live pages and corrupts the tree with duplicate keys
+/// (`!keyReservation.contains(key)` red screens).
+final _routerRefreshProvider = Provider<ValueNotifier<int>>((ref) {
+  final bump = ValueNotifier(0);
+  ref.listen<AuthState>(authStoreProvider, (prev, next) {
+    if (prev?.signedIn != next.signedIn) bump.value++;
+  });
+  ref.listen<AsyncValue<GateDecision>>(
+      launchGateProvider, (prev, next) {
+    if (prev?.valueOrNull != next.valueOrNull) bump.value++;
+  });
+  ref.onDispose(bump.dispose);
+  return bump;
+});
 
-  return GoRouter(
+final routerProvider = Provider<GoRouter>((ref) {
+  final router = GoRouter(
     initialLocation: '/start',
+    refreshListenable: ref.watch(_routerRefreshProvider),
     onException: (context, state, router) {
       // ignore: avoid_print
       print(
@@ -64,6 +80,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       router.go('/home');
     },
     redirect: (context, state) {
+      final auth = ref.read(authStoreProvider);
+      final gate = ref.read(launchGateProvider);
       final location = state.matchedLocation;
 
       if (gate.valueOrNull == GateDecision.maintenance && location != '/maintenance') {
@@ -247,6 +265,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/update', builder: (context, state) => const UpdateScreen()),
     ],
   );
+  ref.onDispose(router.dispose);
+  return router;
 });
 
 class CustomerShell extends StatelessWidget {
