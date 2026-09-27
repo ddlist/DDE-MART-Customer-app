@@ -13,13 +13,22 @@ DateTime? _lastPushAt;
 String? _lastPushTo;
 
 extension SafeNav on BuildContext {
-  /// Push [location], dropping pushes that would duplicate the page already
-  /// on top: GoRouter keys pages by matched location, so pushing the current
-  /// location (or double-tapping a link) crashes the Navigator with
-  /// `!keyReservation.contains(key)`. Already-there and sub-second repeat
-  /// pushes are almost always accidental — ignore them.
+  /// Push [location] without ever duplicating a page already in the stack:
+  /// GoRouter keys pages by matched location, so pushing a location that is
+  /// already stacked (e.g. cart pushed, shell tab switched via `go`, cart
+  /// pushed again — or any double-tap) crashes the Navigator with
+  /// `!keyReservation.contains(key)`. An in-stack location is reached with
+  /// `go` (which rebuilds instead of duplicating); anything else is pushed,
+  /// with sub-second repeats of the same location dropped as double-taps.
   void safePush(String location, {Object? extra}) {
-    if (GoRouterState.of(this).matchedLocation == location) return;
+    final router = GoRouter.of(this);
+    final stacked = router.routerDelegate.currentConfiguration.matches
+        .map((m) => m.matchedLocation)
+        .contains(location);
+    if (stacked) {
+      go(location);
+      return;
+    }
     final now = DateTime.now();
     if (_lastPushTo == location &&
         _lastPushAt != null &&
