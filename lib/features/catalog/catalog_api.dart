@@ -62,13 +62,13 @@ class CatalogApi {
   }
 
   Future<List<Map<String, dynamic>>> productReviews(int id, {int page = 1}) async {
-    final r = await _dio.get('/products/$id/reviews', queryParameters: {'page': page});
-    return _list((r.data as Map)['data']);
+    return _list(await _dio.get('/products/$id/reviews',
+        queryParameters: {'page': page}));
   }
 
   Future<List<Map<String, dynamic>>> storeReviews(int id, {int page = 1}) async {
-    final r = await _dio.get('/stores/$id/reviews', queryParameters: {'page': page});
-    return _list((r.data as Map)['data']);
+    return _list(
+        await _dio.get('/stores/$id/reviews', queryParameters: {'page': page}));
   }
 }
 
