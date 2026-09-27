@@ -5,9 +5,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../../core/nav.dart';
 import 'helpers.dart';
 import 'transport.dart';
 class RentalScreen extends ConsumerStatefulWidget {
@@ -84,7 +84,7 @@ class _RentalScreenState extends ConsumerState<RentalScreen> {
                                 .add(const Duration(hours: 2))
                                 .toIso8601String(),
                           });
-                          if (context.mounted) context.push('/rental/orders');
+                          if (context.mounted) context.safePush('/rental/orders');
                         } catch (e) {
                           if (context.mounted) failSnack(context, e);
                         } finally {
@@ -94,7 +94,7 @@ class _RentalScreenState extends ConsumerState<RentalScreen> {
                 child: Text(_busy ? 'Booking…' : 'Book rental'),
               ),
               TextButton(
-                onPressed: () => context.push('/rental/orders'),
+                onPressed: () => context.safePush('/rental/orders'),
                 child: const Text('My rentals'),
               ),
             ],
@@ -132,7 +132,7 @@ class RentalOrdersScreen extends ConsumerWidget {
                     title: Text('${row['number'] ?? ''}'),
                     subtitle: Text('${row['status']} · ${row['total']}'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/rental/order/${row['id']}'),
+                    onTap: () => context.safePush('/rental/order/${row['id']}'),
                   ),
                 ),
             ],
@@ -234,7 +234,7 @@ class _RideScreenState extends ConsumerState<RideScreen> {
                         'source': _source.text.trim(),
                         'destination': _destination.text.trim(),
                       });
-                      if (context.mounted) context.push('/ride/${ride['id']}');
+                      if (context.mounted) context.safePush('/ride/${ride['id']}');
                     } catch (e) {
                       if (context.mounted) failSnack(context, e);
                     } finally {
@@ -244,7 +244,7 @@ class _RideScreenState extends ConsumerState<RideScreen> {
             child: Text(_busy ? 'Requesting…' : 'Request ride'),
           ),
           TextButton(
-            onPressed: () => context.push('/rides'),
+            onPressed: () => context.safePush('/rides'),
             child: const Text('My rides'),
           ),
         ],
@@ -280,7 +280,7 @@ class RidesScreen extends ConsumerWidget {
                     title: Text('${row['number'] ?? ''}'),
                     subtitle: Text('${row['status']} · ${row['total']}'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/ride/${row['id']}'),
+                    onTap: () => context.safePush('/ride/${row['id']}'),
                   ),
                 ),
             ],

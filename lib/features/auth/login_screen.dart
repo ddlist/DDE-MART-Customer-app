@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../../core/nav.dart';
 import '../../core/auth_store.dart';
 import 'auth_api.dart';
 import 'auth_chrome.dart';
@@ -103,7 +104,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () => context.push('/forgot'),
+                      onPressed: () => context.safePush('/forgot'),
                       child: const Text('Forgot password?'),
                     ),
                   ),
@@ -136,7 +137,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                     ),
                     onPressed: () =>
-                        context.push('/otp', extra: _phone.text.trim()),
+                        context.safePush('/otp', extra: _phone.text.trim()),
                   ),
                   const SizedBox(height: 16),
                   Row(
@@ -144,7 +145,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     children: [
                       const Text('New here?'),
                       TextButton(
-                        onPressed: () => context.push('/register'),
+                        onPressed: () => context.safePush('/register'),
                         child: const Text('Create account'),
                       ),
                     ],

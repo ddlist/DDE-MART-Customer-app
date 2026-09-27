@@ -6,9 +6,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../../core/nav.dart';
 import '../verticals/helpers.dart';
 
 class OrdersApi {
@@ -97,7 +97,7 @@ class OrdersScreen extends ConsumerWidget {
                           title: Text('${order['number'] ?? '#${order['id']}'}'),
                           subtitle: Text('${order['status']} · ${order['total']}'),
                           trailing: const Icon(Icons.chevron_right),
-                          onTap: () => context.push('/order/${order['id']}'),
+                          onTap: () => context.safePush('/order/${order['id']}'),
                         ),
                       ),
                   ],

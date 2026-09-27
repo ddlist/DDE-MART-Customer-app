@@ -6,9 +6,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../../core/nav.dart';
 import 'helpers.dart';
 
 
@@ -122,7 +122,7 @@ class ServicesHubScreen extends StatelessWidget {
                 leading: Icon(entry.$2),
                 title: Text(entry.$1),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.push(entry.$3),
+                onTap: () => context.safePush(entry.$3),
               ),
             ),
         ],
@@ -225,7 +225,7 @@ class _ParcelScreenState extends ConsumerState<ParcelScreen> {
                             'distance_km': double.tryParse(_km.text.trim()) ?? 0,
                           });
                           if (context.mounted) {
-                            context.push('/parcel/order/${booked['id']}');
+                            context.safePush('/parcel/order/${booked['id']}');
                           }
                         } catch (e) {
                           if (context.mounted) failSnack(context, e);
@@ -236,7 +236,7 @@ class _ParcelScreenState extends ConsumerState<ParcelScreen> {
                 child: Text(_busy ? 'Booking…' : 'Book pickup'),
               ),
               TextButton(
-                onPressed: () => context.push('/parcel/orders'),
+                onPressed: () => context.safePush('/parcel/orders'),
                 child: const Text('My parcels'),
               ),
             ],
@@ -274,7 +274,7 @@ class ParcelOrdersScreen extends ConsumerWidget {
                     title: Text('${row['number'] ?? ''}'),
                     subtitle: Text('${row['status']} · ${row['total']}'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/parcel/order/${row['id']}'),
+                    onTap: () => context.safePush('/parcel/order/${row['id']}'),
                   ),
                 ),
             ],

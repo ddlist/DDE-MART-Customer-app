@@ -6,9 +6,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../../core/nav.dart';
 import 'helpers.dart';
 
 class LifeApi {
@@ -136,11 +136,11 @@ class LifeServicesScreen extends ConsumerWidget {
                   child: ListTile(
                     title: Text('${row['title']}'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/life/services/${row['id']}'),
+                    onTap: () => context.safePush('/life/services/${row['id']}'),
                   ),
                 ),
               TextButton(
-                onPressed: () => context.push('/life/bookings'),
+                onPressed: () => context.safePush('/life/bookings'),
                 child: const Text('My bookings'),
               ),
             ],
@@ -180,7 +180,7 @@ class LifeServiceListScreen extends ConsumerWidget {
                     title: Text('${row['title']}'),
                     subtitle: Text('${row['price']} · ${row['provider']?['name'] ?? ''}'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/life/service/${row['id']}'),
+                    onTap: () => context.safePush('/life/service/${row['id']}'),
                   ),
                 ),
             ],
@@ -243,7 +243,7 @@ class _LifeServiceBookScreenState extends ConsumerState<LifeServiceBookScreen> {
                                 notes: _notes.text.trim(),
                               );
                       if (context.mounted) {
-                        context.push('/life/booking/${booking['id']}');
+                        context.safePush('/life/booking/${booking['id']}');
                       }
                     } catch (e) {
                       if (context.mounted) failSnack(context, e);
@@ -286,7 +286,7 @@ class LifeBookingsScreen extends ConsumerWidget {
                     title: Text('${row['number'] ?? ''}'),
                     subtitle: Text('${row['status']} · ${row['total']}'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/life/booking/${row['id']}'),
+                    onTap: () => context.safePush('/life/booking/${row['id']}'),
                   ),
                 ),
             ],
@@ -586,7 +586,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                         icon: const Icon(Icons.favorite, color: Colors.red),
                         onPressed: () => _toggle('product', p['id'] as int),
                       ),
-                      onTap: () => context.push('/product/${p['id']}'),
+                      onTap: () => context.safePush('/product/${p['id']}'),
                     ),
                   ),
                 const SizedBox(height: 12),
@@ -599,7 +599,7 @@ class _FavoritesScreenState extends ConsumerState<FavoritesScreen> {
                         icon: const Icon(Icons.favorite, color: Colors.red),
                         onPressed: () => _toggle('store', s['id'] as int),
                       ),
-                      onTap: () => context.push('/store/${s['id']}'),
+                      onTap: () => context.safePush('/store/${s['id']}'),
                     ),
                   ),
                 if ((favorites?['products'] ?? []).isEmpty &&

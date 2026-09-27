@@ -9,9 +9,9 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../../core/nav.dart';
 import '../../core/widgets.dart';
 import '../cart/cart.dart';
 import '../catalog/catalog_api.dart';
@@ -73,11 +73,11 @@ class HomeScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.search_outlined),
-            onPressed: () => context.push('/search'),
+            onPressed: () => context.safePush('/search'),
           ),
           IconButton(
             icon: const Icon(Icons.shopping_cart_outlined),
-            onPressed: () => context.push('/cart'),
+            onPressed: () => context.safePush('/cart'),
           ),
         ],
       ),
@@ -100,7 +100,7 @@ class HomeScreen extends ConsumerWidget {
                 _StoriesRail(stories: home.stories),
               _SectionBlock(
                 title: 'Shop by category',
-                onSeeAll: () => context.push('/categories'),
+                onSeeAll: () => context.safePush('/categories'),
                 child: SizedBox(
                   height: 96,
                   child: ListView.separated(
@@ -111,7 +111,7 @@ class HomeScreen extends ConsumerWidget {
                     itemBuilder: (context, index) {
                       final section = home.sections[index];
                       return GestureDetector(
-                        onTap: () => context.push(
+                        onTap: () => context.safePush(
                           '/categories?section=${section['id']}&name=${Uri.encodeComponent('${section['name']}')}',
                         ),
                         child: Column(
@@ -155,7 +155,7 @@ class HomeScreen extends ConsumerWidget {
               ),
               _SectionBlock(
                 title: 'Stores near you',
-                onSeeAll: () => context.push('/stores'),
+                onSeeAll: () => context.safePush('/stores'),
                 child: SizedBox(
                   height: 210,
                   child: ListView.separated(
@@ -191,7 +191,7 @@ class HomeScreen extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: FilledButton.tonal(
-                  onPressed: () => context.push('/services'),
+                  onPressed: () => context.safePush('/services'),
                   child: const Text('Services: parcel · rental · rides · more'),
                 ),
               ),
@@ -447,7 +447,7 @@ class _StoreCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final open = (store['is_open'] ?? false) == true;
     return GestureDetector(
-      onTap: () => context.push('/store/${store['id']}'),
+      onTap: () => context.safePush('/store/${store['id']}'),
       child: SizedBox(
         width: 170,
         child: Card(
@@ -528,7 +528,7 @@ class _ProductCard extends ConsumerWidget {
     final list = (product['price'] as num?)?.toDouble() ?? price;
 
     return GestureDetector(
-      onTap: () => context.push('/product/$id'),
+      onTap: () => context.safePush('/product/$id'),
       child: Card(
         clipBehavior: Clip.antiAlias,
         shape: RoundedRectangleBorder(
@@ -568,11 +568,17 @@ class _ProductCard extends ConsumerWidget {
                   ),
                   const SizedBox(height: 4),
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      PriceText(price: price, was: list > price ? list : null),
+                      Expanded(
+                        child: PriceText(price: price, was: list > price ? list : null),
+                      ),
+                      const SizedBox(width: 4),
                       IconButton.filledTonal(
                         icon: const Icon(Icons.add, size: 18),
+                        style: IconButton.styleFrom(
+                          minimumSize: const Size(32, 32),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
                         onPressed: () {
                           ref.read(cartStoreProvider.notifier).add(productId: id);
                           ScaffoldMessenger.of(context).showSnackBar(

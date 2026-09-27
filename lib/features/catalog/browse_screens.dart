@@ -3,9 +3,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../../core/nav.dart';
 import '../../core/widgets.dart';
 import '../cart/cart.dart';
 import '../verticals/life.dart';
@@ -26,7 +26,7 @@ class ProductCard extends ConsumerWidget {
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: InkWell(
-        onTap: () => context.push('/product/$id'),
+        onTap: () => context.safePush('/product/$id'),
         child: Row(
           children: [
             ApiImage(
@@ -98,7 +98,7 @@ class CategoriesScreen extends ConsumerWidget {
                   child: ListTile(
                     title: Text('${row['name']}'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push(
+                    onTap: () => context.safePush(
                       '/category/${row['id']}?name=${Uri.encodeComponent('${row['name']}')}',
                     ),
                   ),
@@ -169,7 +169,7 @@ class StoresScreen extends ConsumerWidget {
                     title: Text('${row['name']}'),
                     subtitle: Text((row['is_open'] ?? false) == true ? 'Open' : 'Closed'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/store/${row['id']}'),
+                    onTap: () => context.safePush('/store/${row['id']}'),
                   ),
                 ),
             ],
@@ -290,6 +290,7 @@ class ProductScreen extends ConsumerStatefulWidget {
 
 class _ProductScreenState extends ConsumerState<ProductScreen> {
   final _selectedAddons = <int>{};
+  bool _adding = false;
 
   @override
   Widget build(BuildContext context) {
@@ -334,6 +335,16 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
           final addons = ((product['addons'] as List?) ?? [])
               .map((e) => Map<String, dynamic>.from(e as Map))
               .toList();
+          final listPrice = (product['price'] as num?)?.toDouble() ?? 0;
+          final salePrice = sellingPrice(product);
+          final discountPct = listPrice > salePrice && listPrice > 0
+              ? (((listPrice - salePrice) / listPrice) * 100).round()
+              : 0;
+          final veg = product['veg'];
+          final quantity = (product['quantity'] as num?)?.toInt();
+          final outOfStock = quantity != null && quantity <= 0;
+          final lowStock = quantity != null && quantity > 0 && quantity <= 5;
+          final storeId = (product['store_id'] as num?)?.toInt();
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -347,22 +358,78 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                     borderRadius: BorderRadius.circular(16),
                     icon: Icons.fastfood_outlined,
                   ),
-                  if (((product['discount_price'] as num?)?.toDouble() ?? 0) > 0)
-                    const Positioned(
+                  if (discountPct > 0)
+                    Positioned(
                       top: 10,
                       left: 10,
-                      child: DiscountBadge(label: 'SALE'),
+                      child: DiscountBadge(label: '-$discountPct%'),
                     ),
                 ],
               ),
               const SizedBox(height: 12),
-              Text('${product['name']}', style: Theme.of(context).textTheme.headlineSmall),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text('${product['name']}',
+                        style: Theme.of(context).textTheme.headlineSmall),
+                  ),
+                  if (veg is bool) ...[
+                    const SizedBox(width: 8),
+                    _VegMark(veg: veg),
+                  ],
+                ],
+              ),
               const SizedBox(height: 4),
               PriceText(
-                price: sellingPrice(product),
-                was: (product['price'] as num?)?.toDouble(),
+                price: salePrice,
+                was: listPrice > salePrice ? listPrice : null,
                 style: Theme.of(context).textTheme.titleLarge,
               ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Icon(
+                    outOfStock ? Icons.cancel_outlined : Icons.check_circle_outline,
+                    size: 16,
+                    color: outOfStock
+                        ? Theme.of(context).colorScheme.error
+                        : Colors.green,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    outOfStock
+                        ? 'Out of stock'
+                        : lowStock
+                            ? 'Only $quantity left'
+                            : 'In stock',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: outOfStock
+                              ? Theme.of(context).colorScheme.error
+                              : Colors.green,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ],
+              ),
+              if (storeId != null) ...[
+                const SizedBox(height: 8),
+                FutureBuilder<Map<String, dynamic>>(
+                  future: ref.watch(catalogApiProvider).store(storeId),
+                  builder: (context, storeSnapshot) {
+                    final name = storeSnapshot.data?['name'];
+                    return Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.store_outlined),
+                        title: Text(name == null ? 'Sold by store #$storeId' : '$name'),
+                        subtitle: const Text('View store'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => context.safePush('/store/$storeId'),
+                      ),
+                    );
+                  },
+                ),
+              ],
               if ('${product['description'] ?? ''}'.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
@@ -375,32 +442,71 @@ class _ProductScreenState extends ConsumerState<ProductScreen> {
                   CheckboxListTile(
                     title: Text('${addon['name']} (+${((addon['price'] as num?) ?? 0).toDouble().toStringAsFixed(2)})'),
                     value: _selectedAddons.contains(addon['id'] as int),
-                    onChanged: (value) {
-                      setState(() {
-                        final id = addon['id'] as int;
-                        if (value == true) {
-                          _selectedAddons.add(id);
-                        } else {
-                          _selectedAddons.remove(id);
-                        }
-                      });
-                    },
+                    onChanged: outOfStock
+                        ? null
+                        : (value) {
+                            setState(() {
+                              final id = addon['id'] as int;
+                              if (value == true) {
+                                _selectedAddons.add(id);
+                              } else {
+                                _selectedAddons.remove(id);
+                              }
+                            });
+                          },
                   ),
               ],
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: () {
-                  ref.read(cartStoreProvider.notifier).add(
-                        productId: widget.productId,
-                        addonIds: _selectedAddons.toList(),
-                      );
-                  context.push('/cart');
-                },
-                child: const Text('Add to cart'),
+                onPressed: outOfStock || _adding
+                    ? null
+                    : () {
+                        setState(() => _adding = true);
+                        try {
+                          ref.read(cartStoreProvider.notifier).add(
+                                productId: widget.productId,
+                                addonIds: _selectedAddons.toList(),
+                              );
+                          context.safePush('/cart');
+                        } finally {
+                          if (mounted) setState(() => _adding = false);
+                        }
+                      },
+                child: Text(_adding ? 'Adding…' : 'Add to cart'),
               ),
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+/// Indian veg / non-veg mark: green square+dot for veg, red/brown for non-veg.
+class _VegMark extends StatelessWidget {
+  const _VegMark({required this.veg});
+
+  final bool veg;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = veg ? Colors.green : const Color(0xFFB3261E);
+    return Container(
+      width: 18,
+      height: 18,
+      decoration: BoxDecoration(
+        border: Border.all(color: color, width: 1.6),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Center(
+        child: Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: color,
+            shape: veg ? BoxShape.circle : BoxShape.rectangle,
+          ),
+        ),
       ),
     );
   }

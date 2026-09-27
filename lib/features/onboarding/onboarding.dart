@@ -46,10 +46,14 @@ class _StartupScreenState extends ConsumerState<StartupScreen> {
   @override
   void initState() {
     super.initState();
-    _route();
+    // Defer past the first frame: navigating synchronously from initState
+    // marks the Router dirty while it is still building (crash + stuck
+    // spinner on real devices).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _route());
   }
 
   Future<void> _route() async {
+    if (!mounted) return;
     final signedIn = ref.read(authStoreProvider).signedIn;
     final router = GoRouter.of(context);
     if (signedIn) {
@@ -57,6 +61,7 @@ class _StartupScreenState extends ConsumerState<StartupScreen> {
       return;
     }
     final done = await onboardingDone();
+    if (!mounted) return;
     router.go(done ? '/login' : '/onboarding');
   }
 

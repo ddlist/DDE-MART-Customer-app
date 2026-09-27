@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../../core/nav.dart';
 import '../../core/auth_store.dart';
 import '../../core/push.dart';
 import '../auth/auth_api.dart';
@@ -130,7 +131,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               leading: const Icon(Icons.help_outline),
               title: const Text('Help & policies'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/pages'),
+              onTap: () => context.safePush('/pages'),
             ),
           ),
           const SizedBox(height: 8),

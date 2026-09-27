@@ -10,6 +10,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/api_client.dart';
+import '../../core/nav.dart';
 import '../verticals/helpers.dart';
 
 class SupportApi {
@@ -78,7 +79,7 @@ class ChatThreadsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Support chat')),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/life/chat/new'),
+        onPressed: () => context.safePush('/life/chat/new'),
         child: const Icon(Icons.add),
       ),
       body: FutureBuilder<List<Map<String, dynamic>>>(
@@ -103,7 +104,7 @@ class ChatThreadsScreen extends ConsumerWidget {
                     title: Text('${row['subject'] ?? 'Conversation'}'),
                     subtitle: Text('${row['last_message'] ?? ''}'),
                     trailing: const Icon(Icons.chevron_right),
-                    onTap: () => context.push('/life/chat/${row['id']}'),
+                    onTap: () => context.safePush('/life/chat/${row['id']}'),
                   ),
                 ),
             ],
@@ -448,7 +449,7 @@ class _SosRaiseScreenState extends ConsumerState<SosRaiseScreen> {
             child: Text(_busy ? 'Sending…' : 'SEND SOS'),
           ),
           TextButton(
-            onPressed: () => context.push('/life/complaints'),
+            onPressed: () => context.safePush('/life/complaints'),
             child: const Text('File a complaint instead'),
           ),
         ],
@@ -473,7 +474,7 @@ class SafetyScreen extends StatelessWidget {
               leading: const Icon(Icons.sos_outlined, color: Colors.red),
               title: const Text('Emergency SOS'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/life/safety/sos'),
+              onTap: () => context.safePush('/life/safety/sos'),
             ),
           ),
           Card(
@@ -481,7 +482,7 @@ class SafetyScreen extends StatelessWidget {
               leading: const Icon(Icons.report_outlined),
               title: const Text('Complaints'),
               trailing: const Icon(Icons.chevron_right),
-              onTap: () => context.push('/life/complaints'),
+              onTap: () => context.safePush('/life/complaints'),
             ),
           ),
         ],
