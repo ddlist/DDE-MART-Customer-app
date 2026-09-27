@@ -272,6 +272,67 @@ class StarsRow extends StatelessWidget {
   }
 }
 
+/// Colored status pill shared by orders, parcels, rides and bookings.
+class StatusChip extends StatelessWidget {
+  const StatusChip({super.key, required this.status});
+
+  final String status;
+
+  static Color colorFor(String status) {
+    switch (status.toLowerCase()) {
+      case 'placed':
+      case 'pending':
+      case 'scheduled':
+        return Colors.amber.shade700;
+      case 'accepted':
+      case 'confirmed':
+        return Colors.blue;
+      case 'preparing':
+      case 'cooking':
+        return Colors.deepOrange;
+      case 'ready':
+      case 'ongoing':
+      case 'on_the_way':
+      case 'picked_up':
+      case 'shipped':
+        return Colors.purple;
+      case 'completed':
+      case 'delivered':
+      case 'paid':
+      case 'approved':
+        return Colors.green;
+      case 'cancelled':
+      case 'canceled':
+      case 'rejected':
+      case 'failed':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = colorFor(status);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Text(
+        status.replaceAll('_', ' ').toUpperCase(),
+        style: TextStyle(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}
+
 class ErrorRetry extends StatelessWidget {
   const ErrorRetry({super.key, required this.error, required this.onRetry});
 
