@@ -13,9 +13,13 @@ DateTime? _lastPushAt;
 String? _lastPushTo;
 
 extension SafeNav on BuildContext {
-  /// Push [location], ignoring a repeat push of the same location within
-  /// 800ms (almost always an accidental double-tap).
+  /// Push [location], dropping pushes that would duplicate the page already
+  /// on top: GoRouter keys pages by matched location, so pushing the current
+  /// location (or double-tapping a link) crashes the Navigator with
+  /// `!keyReservation.contains(key)`. Already-there and sub-second repeat
+  /// pushes are almost always accidental — ignore them.
   void safePush(String location, {Object? extra}) {
+    if (GoRouterState.of(this).matchedLocation == location) return;
     final now = DateTime.now();
     if (_lastPushTo == location &&
         _lastPushAt != null &&
