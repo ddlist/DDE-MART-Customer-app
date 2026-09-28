@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Push notifications (Android 13+ runtime request via FirebaseMessaging). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <application
         android:label="dde_customer"
         android:name="${applicationName}"
