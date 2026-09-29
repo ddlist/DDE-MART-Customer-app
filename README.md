@@ -7,7 +7,7 @@ No code from the legacy suite — behavior reimplemented from the API contract.
 
 ```sh
 # Android emulator (host backend on :8000) or a reachable host:
-flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+flutter run --dart-define=API_BASE_URL=http://dde-mart-admin.test/api/v1
 
 # iOS simulator on the same Mac as the backend:
 flutter run --dart-define=API_BASE_URL=http://localhost:8000/api/v1
