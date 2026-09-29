@@ -77,3 +77,7 @@ flutter test      # 13 tests: cart math, launch gate, nav guards, boot
 
 Installation, tech support, customization: **shariqq.com@gmail.com** ·
 WhatsApp **@shareeq9**.
+
+## Credits
+
+Built by [DDLIST](https://ddlist.github.io).
