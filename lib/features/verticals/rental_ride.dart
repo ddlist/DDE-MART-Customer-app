@@ -20,8 +20,16 @@ class RentalScreen extends ConsumerStatefulWidget {
 class _RentalScreenState extends ConsumerState<RentalScreen> {
   final _source = TextEditingController();
   final _destination = TextEditingController();
+  late final Future<Map<String, dynamic>> _metaFuture;
   int? _packageId;
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Hoisted: a fresh future every build would refetch in a loop.
+    _metaFuture = ref.read(transportApiProvider).rentalMeta();
+  }
 
   @override
   void dispose() {
@@ -35,7 +43,7 @@ class _RentalScreenState extends ConsumerState<RentalScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Book a rental')),
       body: FutureBuilder<Map<String, dynamic>>(
-        future: ref.watch(transportApiProvider).rentalMeta(),
+        future: _metaFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -43,24 +51,35 @@ class _RentalScreenState extends ConsumerState<RentalScreen> {
           if (snapshot.hasError) {
             return Center(child: Text(apiMessage(snapshot.error!)));
           }
-          final packages = apiList(snapshot.data!['packages']);
-          _packageId ??= packages.isEmpty ? null : packages.first['id'] as int;
+          final packages = [
+            for (final p in apiList(snapshot.data!['packages']))
+              if (idAsInt(p['id']) != null) p,
+          ];
+          _packageId ??= packages.isEmpty ? null : idAsInt(packages.first['id']);
 
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              DropdownButtonFormField<int>(
-                initialValue: _packageId,
-                items: [
-                  for (final p in packages)
-                    DropdownMenuItem(
-                      value: p['id'] as int,
-                      child: Text('${p['name']} · ${p['base_fare']}'),
-                    ),
-                ],
-                onChanged: (value) => setState(() => _packageId = value),
-                decoration: const InputDecoration(labelText: 'Package'),
-              ),
+              if (packages.isEmpty)
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text('No rental packages configured — check back soon.'),
+                  ),
+                )
+              else
+                DropdownButtonFormField<int>(
+                  initialValue: _packageId,
+                  items: [
+                    for (final p in packages)
+                      DropdownMenuItem(
+                        value: idAsInt(p['id'])!,
+                        child: Text('${p['name']} · ${p['base_fare']}'),
+                      ),
+                  ],
+                  onChanged: (value) => setState(() => _packageId = value),
+                  decoration: const InputDecoration(labelText: 'Package'),
+                ),
               const SizedBox(height: 12),
               TextField(controller: _source, decoration: const InputDecoration(labelText: 'Pickup')),
               const SizedBox(height: 12),

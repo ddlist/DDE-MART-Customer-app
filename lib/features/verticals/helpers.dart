@@ -11,6 +11,14 @@ Map<String, dynamic> apiItem(Map e) => Map<String, dynamic>.from(e);
 List<Map<String, dynamic>> apiList(Object? data) =>
     ((data as List?) ?? []).map((e) => apiItem(e as Map)).toList();
 
+/// Tolerant id read for API-fed dropdowns: JSON numbers decode as int,
+/// but string ids or nulls must degrade to null instead of throwing.
+int? idAsInt(Object? value) {
+  if (value is int) return value;
+  if (value is String) return int.tryParse(value);
+  return null;
+}
+
 /// Error snackbar with the backend's message.
 void failSnack(BuildContext context, Object e) {
   ScaffoldMessenger.of(context).showSnackBar(

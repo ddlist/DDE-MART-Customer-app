@@ -145,8 +145,16 @@ class _ParcelScreenState extends ConsumerState<ParcelScreen> {
   final _receiverPhone = TextEditingController();
   final _receiverAddr = TextEditingController();
   final _km = TextEditingController(text: '4');
+  late final Future<Map<String, dynamic>> _metaFuture;
   int? _weightId;
   bool _busy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Hoisted: a fresh future every build would refetch in a loop.
+    _metaFuture = ref.read(transportApiProvider).parcelMeta();
+  }
 
   @override
   void dispose() {
@@ -164,7 +172,7 @@ class _ParcelScreenState extends ConsumerState<ParcelScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Send a parcel')),
       body: FutureBuilder<Map<String, dynamic>>(
-        future: ref.watch(transportApiProvider).parcelMeta(),
+        future: _metaFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -173,8 +181,11 @@ class _ParcelScreenState extends ConsumerState<ParcelScreen> {
             return Center(child: Text(apiMessage(snapshot.error!)));
           }
           final meta = snapshot.data!;
-          final weights = apiList(meta['weights']);
-          _weightId ??= weights.isEmpty ? null : weights.first['id'] as int;
+          final weights = [
+            for (final w in apiList(meta['weights']))
+              if (idAsInt(w['id']) != null) w,
+          ];
+          _weightId ??= weights.isEmpty ? null : idAsInt(weights.first['id']);
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -193,15 +204,23 @@ class _ParcelScreenState extends ConsumerState<ParcelScreen> {
               const SizedBox(height: 12),
               TextField(controller: _receiverAddr, decoration: _label('Dropoff address')),
               const SizedBox(height: 12),
-              DropdownButtonFormField<int>(
-                initialValue: _weightId,
-                items: [
-                  for (final w in weights)
-                    DropdownMenuItem(value: w['id'] as int, child: Text('${w['title']}')),
-                ],
-                onChanged: (value) => setState(() => _weightId = value),
-                decoration: _label('Weight slab'),
-              ),
+              if (weights.isEmpty)
+                const Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(12),
+                    child: Text('No weight slabs configured — check back soon.'),
+                  ),
+                )
+              else
+                DropdownButtonFormField<int>(
+                  initialValue: _weightId,
+                  items: [
+                    for (final w in weights)
+                      DropdownMenuItem(value: idAsInt(w['id'])!, child: Text('${w['title']}')),
+                  ],
+                  onChanged: (value) => setState(() => _weightId = value),
+                  decoration: _label('Weight slab'),
+                ),
               const SizedBox(height: 12),
               TextField(
                 controller: _km,
