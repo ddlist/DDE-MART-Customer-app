@@ -1,43 +1,79 @@
-# DDE-Mart customer app (clean-room rebuild)
+# DDE-Mart Customer App
 
-Fresh Flutter app against `admin-panel` API v1 (`docs/api-v1.md`).
-No code from the legacy suite — behavior reimplemented from the API contract.
+The customer-facing Flutter app for the DDE-Mart platform: food & grocery
+ordering, parcels, rentals, rides, home services, dine-in, gifts, wallet
+and support — all against one backend API.
+
+- Backend: [DDE-MART-BACKEND](https://github.com/ddlist/DDE-MART-BACKEND) (`master`)
+- API reference: `admin-panel/docs/api-v1.md` (Customer sections)
+
+## Features
+
+- **Auth** — register, password login, OTP login, forgot/reset password,
+  logout, and self-service **account deletion** (`DELETE /me`, store-review compliant).
+- **Home & catalog** — sections, banners, product feeds, store pages,
+  product detail with variants/addons, ratings & reviews, favorites.
+- **Cart & checkout** — server-priced quotes, coupons, COD / wallet /
+  gateway top-up, order tracking with driver position.
+- **Verticals** — parcel booking with weight/distance quotes, rentals,
+  ride requests, service bookings, dine-in reservations, gift cards.
+- **Wallet & referrals** — ledger, top-ups, referral rewards.
+- **Safety** — complaints, SOS with GPS, support chat.
+- **Platform** — launch gate (min version + maintenance from
+  `/app-config`), FCM push per role, dark mode, offline-tolerant UI with
+  shimmer loading and empty states.
+
+## Setup
+
+Prerequisites: Flutter 3.41+ (`flutter doctor` clean), Android Studio or
+Xcode, and the backend running (see backend README).
+
+```sh
+git clone https://github.com/ddlist/DDE-MART-Customer-app.git customer
+cd customer
+flutter pub get
+```
 
 ## Run
 
+The API host is not hardcoded — pass it at run time (default:
+`http://dde-mart-admin.test/api/v1`):
+
 ```sh
-# Android emulator (host backend on :8000) or a reachable host:
+# Herd/Valet domain (resolves on this PC):
 flutter run --dart-define=API_BASE_URL=http://dde-mart-admin.test/api/v1
 
-# iOS simulator on the same Mac as the backend:
+# Android emulator when .test doesn't resolve there:
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+
+# iOS simulator (same machine as backend):
 flutter run --dart-define=API_BASE_URL=http://localhost:8000/api/v1
+
+# Physical phone (same Wi-Fi; backend on 0.0.0.0:8000):
+flutter run --dart-define=API_BASE_URL=http://<pc-lan-ip>:8000/api/v1
 ```
 
-## What's wired
+Test accounts: self-register in the app. Demo OTP codes appear in the
+backend log outside production (`debug_code`).
 
-- Launch gate: `GET /app-config` (min version per audience + maintenance
-  flag, both editable in panel Settings → Mobile apps). Offline fails open;
-  each screen retries on its own.
-- Auth: register, password login, OTP request/verify, forgot/reset
-  password, logout, **account deletion** (`DELETE /me`, store-compliant).
-- Home: public sections / banners / products feed with pull-to-refresh.
-- Router (`go_router`) guards guests to sign-in and signed-in users home.
+## Release build
 
-## Next (not yet)
+```sh
+flutter build appbundle --dart-define=API_BASE_URL=https://api.your-domain.com/api/v1
+flutter build ipa      --dart-define=API_BASE_URL=https://api.your-domain.com/api/v1
+```
 
-- Catalog (category/store/product pages), cart + checkout (COD/wallet +
-  gateway redirects via webview), orders + tracking, wallet top-up.
-- Verticals: parcel, rental, rides, services, dine-in, gifts, favorites.
-- Safety: complaints filing, SOS button, support chat.
-- Push: `firebase_messaging` — register token at `POST /push-tokens`,
-  subscribe to the `vendors`/`drivers`… (customer app: `customers` topic
-  convention TBD) audience topics for order-status broadcasts.
-- Firebase native files (`google-services.json` / `GoogleService-Info.plist`)
-  are NOT in the repo — add per environment (see backend `.env.example`).
+Push needs `google-services.json` / `GoogleService-Info.plist` per
+environment (see `FIREBASE_SETUP.md`) — never committed.
 
 ## Verify
 
 ```sh
-flutter analyze
-flutter test
+flutter analyze   # clean
+flutter test      # 13 tests: cart math, launch gate, nav guards, boot
 ```
+
+## Support
+
+Installation, tech support, customization: **shariqq.com@gmail.com** ·
+WhatsApp **@shareeq9**.
