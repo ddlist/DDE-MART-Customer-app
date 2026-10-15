@@ -69,7 +69,7 @@ class HomeScreen extends ConsumerWidget {
     final feed = ref.watch(homeFeedProvider);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('DDE-Mart'),
+        title: const Text('Hometry'),
         actions: [
           IconButton(
             icon: const Icon(Icons.search_outlined),

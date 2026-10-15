@@ -39,7 +39,7 @@ class AuthHeader extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Text(
-            'DDE-Mart',
+            'Hometry',
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
                   color: Colors.white.withValues(alpha: 0.85),
                   letterSpacing: 2,

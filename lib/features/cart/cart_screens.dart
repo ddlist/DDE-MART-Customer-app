@@ -522,7 +522,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                               const Icon(Icons.wallet_outlined),
                           title: const Text('Wallet balance'),
                           subtitle: const Text(
-                              'Instant debit from your DDE wallet'),
+                              'Instant debit from your Hometry wallet'),
                           value: 'wallet',
                         ),
                       ],

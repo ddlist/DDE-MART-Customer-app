@@ -1,6 +1,6 @@
-# DDE-Mart Customer App
+# Hometry Customer App
 
-The customer-facing Flutter app for the DDE-Mart platform: food & grocery
+The customer-facing Flutter app for the Hometry platform: food & grocery
 ordering, parcels, rentals, rides, home services, dine-in, gifts, wallet
 and support — all against one backend API.
 
@@ -36,8 +36,14 @@ flutter pub get
 
 ## Run
 
-The API host is not hardcoded — pass it at run time (default:
-`http://dde-mart-admin.test/api/v1`):
+The API host defaults to live (`https://admin.hometry.in/api/v1`) — no
+`--dart-define` needed:
+
+```sh
+flutter run
+```
+
+Local override:
 
 ```sh
 # Herd/Valet domain (resolves on this PC):
@@ -58,9 +64,13 @@ backend log outside production (`debug_code`).
 
 ## Release build
 
+Release builds use the live API default (`https://admin.hometry.in/api/v1`)
+— no `--dart-define` needed:
+
 ```sh
-flutter build appbundle --dart-define=API_BASE_URL=https://api.your-domain.com/api/v1
-flutter build ipa      --dart-define=API_BASE_URL=https://api.your-domain.com/api/v1
+flutter build appbundle
+flutter build apk --release
+flutter build ipa
 ```
 
 Push needs `google-services.json` / `GoogleService-Info.plist` per
@@ -84,6 +94,6 @@ Built by [DDLIST](https://ddlist.github.io).
 
 ## License
 
-DDLIST Commercial Source License v1.0 � see [LICENSE](LICENSE). You may
+DDLIST Commercial Source License v1.0 � see [LICENSE](LICENSE). You may
 use, run, edit, and modify the software for personal or business use,
 but you may not resell, redistribute, or republish it.

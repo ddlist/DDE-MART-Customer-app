@@ -67,7 +67,7 @@ class PushService {
 
     const channel = AndroidNotificationChannel(
       'dde_customer',
-      'DDE-Mart updates',
+      'Hometry updates',
       importance: Importance.high,
     );
     final local = FlutterLocalNotificationsPlugin();

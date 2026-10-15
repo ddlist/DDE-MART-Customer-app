@@ -346,7 +346,7 @@ class MaintenanceScreen extends ConsumerWidget {
             children: [
               const Icon(Icons.construction_outlined, size: 64),
               const SizedBox(height: 16),
-              const Text('DDE-Mart is under maintenance', textAlign: TextAlign.center),
+              const Text('Hometry is under maintenance', textAlign: TextAlign.center),
               const SizedBox(height: 16),
               FilledButton(
                 onPressed: () => ref.invalidate(launchGateProvider),
@@ -375,7 +375,7 @@ class UpdateScreen extends StatelessWidget {
               Icon(Icons.system_update_outlined, size: 64),
               SizedBox(height: 16),
               Text(
-                'Please update DDE-Mart to continue.',
+                'Please update Hometry to continue.',
                 textAlign: TextAlign.center,
               ),
             ],

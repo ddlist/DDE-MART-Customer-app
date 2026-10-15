@@ -370,7 +370,7 @@ class _SosRaiseScreenState extends ConsumerState<SosRaiseScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('Sends your location to DDE-Mart safety staff.'),
+          const Text('Sends your location to Hometry safety staff.'),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             icon: const Icon(Icons.my_location_outlined),

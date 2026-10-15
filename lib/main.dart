@@ -21,7 +21,7 @@ class DdeCustomerApp extends ConsumerWidget {
     ref.watch(pushSyncProvider);
 
     return MaterialApp.router(
-      title: 'DDE-Mart',
+      title: 'Hometry',
       debugShowCheckedModeBanner: false,
       theme: DdeTheme.light(),
       darkTheme: DdeTheme.dark(),

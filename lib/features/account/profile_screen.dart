@@ -145,7 +145,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _shareApp() async {
     await Clipboard.setData(const ClipboardData(
         text:
-            'Order food, parcels, rides and services on DDE-Mart: https://play.google.com/store/apps/details?id=com.ddemart.dde_customer'));
+            'Order food, parcels, rides and services on Hometry: https://play.google.com/store/apps/details?id=com.ddemart.dde_customer'));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('App link copied.')),

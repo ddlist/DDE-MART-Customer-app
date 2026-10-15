@@ -55,7 +55,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           padding: EdgeInsets.zero,
           children: [
             const AuthHeader(
-              title: 'Join DDE-Mart',
+              title: 'Join Hometry',
               subtitle: 'One account for food, rides and services.',
             ),
             Padding(
