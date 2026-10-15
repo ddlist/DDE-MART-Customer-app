@@ -1,3 +1,4 @@
+import java.io.File
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -45,9 +46,16 @@ android {
             keyAlias = keystoreProperties["keyAlias"] as String?
             keyPassword = keystoreProperties["keyPassword"] as String?
             storePassword = keystoreProperties["storePassword"] as String?
+            // storeFile in key.properties is relative to this (app) module,
+            // e.g. ../hometry-upload-key.jks -> android/hometry-upload-key.jks.
             val storeFilePath = keystoreProperties["storeFile"] as String?
             if (storeFilePath != null) {
-                storeFile = rootProject.file(storeFilePath)
+                val candidate = File(storeFilePath)
+                storeFile = when {
+                    candidate.isAbsolute -> candidate
+                    project.file(storeFilePath).exists() -> project.file(storeFilePath)
+                    else -> keystorePropertiesFile.parentFile.resolve(storeFilePath)
+                }
             }
         }
     }
